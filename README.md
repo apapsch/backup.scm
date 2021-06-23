@@ -48,6 +48,30 @@ GRANT SELECT,SHOW VIEW,TRIGGER,LOCK TABLES ON foo.* TO 'backup'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
+## Integration into Guix
+
+In your operating system config, you could add this script as a `local-file`,
+which is then executed via `mcron`. Note `#:recursive #t` which preserves
+the permission bits on `backup.scm`.
+
+```
+(define backup-script
+  (local-file "backup.scm/backup.scm"
+	      #:recursive? #t))
+
+(define backup-job
+  #~(job '(next-hour '(0))
+	     (lambda ()
+	       (execl #$backup-script #$backup-script))))
+
+(operating-system
+  (services
+    (append (list (simple-service 'backup-jobs
+                                  mcron-service-type
+                                  (list backup-job)))
+            %base-services)))
+```
+
 [socket-auth-mariadb](https://mariadb.com/kb/en/authentication-plugin-unix-socket/)
 [socket-auth-mysql](https://dev.mysql.com/doc/refman/8.0/en/socket-pluggable-authentication.html)
 [mysqldump-docs](https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html)
